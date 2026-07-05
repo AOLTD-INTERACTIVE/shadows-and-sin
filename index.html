@@ -10,6 +10,7 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
@@ -219,6 +220,7 @@
       justify-content: space-between;
       transform: rotate(var(--rot, 0deg)) scale(1);
       transform-origin: top center;
+      outline: none;
     }
 
     /* Pin string */
@@ -251,20 +253,15 @@
     .pin-card:nth-child(2) { --rot: 2deg; }
     .pin-card:nth-child(3) { --rot: -0.5deg; }
 
-    /* --- THE TILT & STRAIN ANIMATION (Class-based for mobile) --- */
-    .pin-card.tilt-active {
-      background: rgba(18, 8, 12, 0.95);
-      animation: tiltStrain 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    /* --- HOVER: ONLY BORDER CHANGE (No animation) --- */
+    .pin-card:hover {
       border-color: #4ade80;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.9);
     }
 
-    /* PC Hover support */
-    .pin-card:hover {
-      background: rgba(18, 8, 12, 0.95);
+    /* --- CLICK ANIMATION (Tilt & Strain) --- */
+    .pin-card.tilt-active {
       animation: tiltStrain 0.8s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.9);
-      border-color: #4ade80;
     }
 
     @keyframes tiltStrain {
@@ -274,16 +271,14 @@
       100% { transform: rotate(2deg) scale(1.02) translateY(-5px); }
     }
 
-    /* Taut string effect on hover/tilt */
-    .pin-card.tilt-active::before,
-    .pin-card:hover::before {
+    /* Taut string effect on tilt */
+    .pin-card.tilt-active::before {
       height: 20px;
       transform: translateX(-50%) rotate(6deg);
       opacity: 0.9;
     }
 
-    .pin-card.tilt-active::after,
-    .pin-card:hover::after {
+    .pin-card.tilt-active::after {
       transform: translateX(-50%) rotate(-5deg) scale(1.1);
     }
 
@@ -296,6 +291,7 @@
       letter-spacing: 0.1em;
       font-family: 'Courier New', monospace;
       text-shadow: 0 0 4px rgba(110, 231, 183, 0.2);
+      pointer-events: none;
     }
 
     .pin-card h3 {
@@ -327,7 +323,7 @@
       pointer-events: none;
     }
 
-    /* --- OPEN FILE BUTTON (Only clickable area) --- */
+    /* --- OPEN FILE BUTTON (Completely isolated click) --- */
     .pin-card .open-btn {
       display: block;
       color: #6ee7b7;
@@ -342,17 +338,7 @@
       cursor: pointer;
       position: relative;
       z-index: 10;
-    }
-
-    /* Bottom area click zone */
-    .pin-card .click-zone {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 60px;
-      cursor: pointer;
-      z-index: 5;
+      pointer-events: auto;
     }
 
     .pin-card.tilt-active .open-btn,
@@ -628,7 +614,6 @@
       <div class="evidence-grid">
         
         <div class="pin-card" data-title="The Whisper" data-full="I didn't mean to hurt her. I just wanted her to stop screaming. The knife was in my hand before I knew it. I watched the light leave her eyes, and for a moment, I felt peace. Then the panic set in. I buried her where the moon doesn't shine.">
-          <div class="click-zone"></div>
           <span class="case-number">#0042</span>
           <h3>The Whisper</h3>
           <div class="date">OCT 12, 2023</div>
@@ -637,7 +622,6 @@
         </div>
 
         <div class="pin-card" data-title="Midnight Confession" data-full="They say I'm a monster. But monsters don't cry. I cried for three days after I buried the box. Inside was everything I ever loved. A lock of her hair. A broken locket. A letter I never sent. I don't regret it. I regret that she never got to read it.">
-          <div class="click-zone"></div>
           <span class="case-number">#0087</span>
           <h3>Midnight Confession</h3>
           <div class="date">NOV 04, 2023</div>
@@ -646,7 +630,6 @@
         </div>
 
         <div class="pin-card" data-title="The Last Letter" data-full="If you're reading this, I'm already gone. Take the key from the envelope. You'll know what to do. The basement door is unlocked. Don't trust the silence. It's lying to you.">
-          <div class="click-zone"></div>
           <span class="case-number">#0123</span>
           <h3>The Last Letter</h3>
           <div class="date">DEC 19, 2023</div>
@@ -734,34 +717,29 @@
       fog.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(40, 45, 50, 0.1) 0%, rgba(20, 25, 30, 0.6) 100%)`;
     });
 
-    // --- 3. MOBILE TILT LOGIC (Tap to tilt, separate from open) ---
+    // --- 3. TILT LOGIC (Click card to trigger animation) ---
     const pins = document.querySelectorAll('.pin-card');
 
     pins.forEach(pin => {
-      // On mobile: tap anywhere on the card (except the button) triggers tilt
-      // We use 'click' because 'touchstart' interferes with scrolling
+      // Clicking the card body triggers the tilt
       pin.addEventListener('click', function(e) {
-        // Check if the click was on the open button or the click-zone
+        // Check if the click was on the open button
         const isButton = e.target.closest('.open-btn');
-        const isZone = e.target.closest('.click-zone');
-        
-        // If it's the button or zone, we don't trigger the tilt (the button handles it separately)
-        if (isButton || isZone) return;
+        if (isButton) return; // Let the button handle it separately
 
-        // Otherwise, toggle the tilt class
+        // Remove the class if it's already there, then re-add to restart animation
         this.classList.remove('tilt-active');
-        // Force reflow to restart animation
-        void this.offsetWidth;
+        void this.offsetWidth; // Force reflow
         this.classList.add('tilt-active');
         
-        // Remove the class after the animation finishes (so it can be triggered again)
+        // Remove the class after the animation finishes
         setTimeout(() => {
           this.classList.remove('tilt-active');
         }, 1000);
       });
     });
 
-    // --- 4. MODAL LOGIC (Only triggers on button or bottom zone) ---
+    // --- 4. MODAL LOGIC (Only triggers on button) ---
     const modal = document.getElementById('curtainModal');
     const closeBtn = document.getElementById('closeModal');
     const modalTitle = document.getElementById('modalTitle');
@@ -769,7 +747,6 @@
 
     pins.forEach(pin => {
       const openBtn = pin.querySelector('.open-btn');
-      const clickZone = pin.querySelector('.click-zone');
 
       const openFile = () => {
         const fullText = pin.getAttribute('data-full');
@@ -785,7 +762,6 @@
       };
 
       openBtn.addEventListener('click', openFile);
-      clickZone.addEventListener('click', openFile);
     });
 
     const closeModal = () => {
@@ -797,7 +773,8 @@
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
 
-    // --- 5. SHOPIFY LINKS ---    // All links point to https://www.shopify.com. Ready to be swapped later.
+    // --- 5. SHOPIFY LINKS ---
+    // All links point to https://www.shopify.com. Ready to be swapped later.
   </script>
 
 </body>
